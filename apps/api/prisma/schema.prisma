@@ -1,0 +1,58 @@
+// apps/api/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  role      String   @default("USER") // ADMIN, HR, SALES
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// CRM Models
+model Contact {
+  id        Int      @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  company   String?
+  status    String   @default("LEAD") // LEAD, CUSTOMER
+  createdAt DateTime @default(now())
+}
+
+model Deal {
+  id          Int      @id @default(autoincrement())
+  title       String
+  value       Float
+  stage       String   // NEW, QUALIFIED, WON, LOST
+  closeDate   DateTime?
+  createdAt   DateTime @default(now())
+}
+
+// HRM Models
+model Employee {
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  department  String
+  jobTitle    String
+  hireDate    DateTime
+  nextcloudId String?  // ID of the folder in NextCloud
+}
+
+model Candidate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  status    String   // APPLIED, INTERVIEW, OFFER, REJECTED
+  cvUrl     String?  // Link to NextCloud file
+}

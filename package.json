@@ -1,0 +1,16 @@
+{
+  "name": "uems-v1",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "docker-compose up",
+    "build": "echo 'Building all workspaces...'",
+    "test": "echo 'Testing all workspaces...'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}

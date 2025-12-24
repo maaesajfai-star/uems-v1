@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # ---------------------------
+  # Database Service (Postgres)
+  # ---------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: uems_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: uems_admin
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: uems_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - uems_network
+
+  # ---------------------------
+  # File Storage (NextCloud)
+  # ---------------------------
+  nextcloud:
+    image: nextcloud:latest
+    container_name: uems_nextcloud
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=uems_admin
+      - POSTGRES_PASSWORD=secure_password_123
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin_password_123
+    volumes:
+      - nextcloud_data:/var/www/html
+    depends_on:
+      - postgres
+    networks:
+      - uems_network
+
+  # ---------------------------
+  # Backend API (NestJS)
+  # ---------------------------
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: uems_api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://uems_admin:secure_password_123@postgres:5432/uems_db?schema=public
+      - NEXTCLOUD_URL=http://nextcloud:80
+      - NEXTCLOUD_USER=admin
+      - NEXTCLOUD_PASS=admin_password_123
+      - JWT_SECRET=super_secret_jwt_key
+    depends_on:
+      - postgres
+      - nextcloud
+    volumes:
+      - ./apps/api:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - uems_network
+    command: npm run start:dev
+
+  # ---------------------------
+  # Frontend (React/Vite)
+  # ---------------------------
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: uems_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - uems_network
+
+volumes:
+  postgres_data:
+  nextcloud_data:
+
+networks:
+  uems_network:
+    driver: bridge
